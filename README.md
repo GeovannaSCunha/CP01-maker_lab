@@ -3,7 +3,7 @@
 ## Documentação Técnica
 
 **Disciplina:** Project Maker Lab  
-**CP01** Carrinho controlado pelo celular com Bluetooth e Arduino Uno  
+**CP01:** Carrinho controlado pelo celular com Bluetooth e Arduino Uno  
 **Integrantes:**
 - Geovanna Silva Cunha — RM97736
 - Victor Camargo Maciel — RM98384
