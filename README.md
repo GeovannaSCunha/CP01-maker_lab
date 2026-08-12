@@ -2,12 +2,12 @@
 
 ## Documentação Técnica
 
-**Disciplina:** Maker Lab  
+**Disciplina:** Project Maker Lab  
 **Projeto:** Carrinho controlado pelo celular com Bluetooth e Arduino Uno  
-**Grupo:** [preencher]  
-**Integrantes:** [preencher]  
-**Turma:** [preencher]  
-**Data:** [preencher]  
+**Integrantes:**
+- Geovanna Silva Cunha RM97736
+- Victor Camargo Maciel RM98384
+**Turma:** 4ESPX
 
 ---
 
@@ -15,7 +15,7 @@
 
 Este projeto consiste no desenvolvimento de um carrinho robótico controlado por celular, utilizando comunicação **Bluetooth** e uma placa **Arduino Uno R3** como unidade de controle principal.
 
-O carrinho foi montado com base em um **chassi impresso em 3D**, diferente do chassi acrílico que acompanhava o kit 2WD. O sistema permite movimentação para frente, para trás e mudança de direção por meio do acionamento independente dos motores laterais.
+O carrinho foi montado com base em um **chassi impresso em 3D**. O sistema permite movimentação para frente, para trás e mudança de direção por meio do acionamento independente dos motores laterais.
 
 Além da parte funcional, foi proposta uma **carenagem decorativa inspirada na Máquina Mistério (Scooby-Doo)**, produzida em **papelão Paraná** e pintura manual.
 
@@ -48,7 +48,6 @@ Desenvolver um carrinho robótico com controle remoto via smartphone, integrando
 | 1 | Chassi impresso em 3D | Estrutura principal |
 | 1 | Carenagem em papelão Paraná | Cobertura e decoração |
 
-> **Observação:** o kit 2WD fornecia um chassi acrílico, porém **ele não foi utilizado** no projeto final.
 
 ---
 
@@ -100,7 +99,7 @@ Celular → Bluetooth HC-06 → Arduino Uno → Ponte H L298N → Motores DC →
 
 ### 6.1 Chassi
 
-O chassi do carrinho foi **impresso em 3D** e serve como base para a montagem de toda a eletrônica. No centro há uma bandeja elevada para acomodar os componentes principais.
+O chassi do carrinho foi **impresso em 3D** e serve como base para a montagem de toda a eletrônica. Também foi impresso uma tampa para proteção dos componentes.
 
 <p align="center">
   <img src="./images/chassi_isometrico.png" width="700" alt="Vista isométrica do chassi impresso em 3D">
@@ -172,7 +171,6 @@ As medidas abaixo são estimadas com base no modelo 3D do projeto:
 | Largura do chassi | ≈ 130–138 mm |
 | Quantidade de motores | 2 |
 
-> **Ressalva:** as medidas foram extraídas do modelo fornecido e devem ser consideradas como aproximações.
 
 ---
 
@@ -186,18 +184,10 @@ A professora solicitou a inclusão da carenagem do projeto. Para isso, foi propo
 - **Acabamento:** pintura manual;
 - **Formato:** caixa/cobertura retangular simples;
 - **Referência visual:** Máquina Mistério do Scooby-Doo;
-- **Tampa superior removível:** para acesso à eletrônica;
-- **Recorte frontal:** para a roda boba;
-- **Recortes laterais:** para compatibilidade com os 2 motores.
 
 ### 8.2 Função da carenagem
 
-A carenagem tem como objetivo:
-
-- proteger parcialmente os componentes;
-- melhorar o acabamento visual do carrinho;
-- representar o tema escolhido pelo grupo;
-- permitir manutenção por meio de tampa removível.
+A carenagem tem como objetivo melhorar o acabamento visual do carrinho.
 
 ### 8.3 Simulação da carenagem proposta
 
@@ -217,10 +207,9 @@ A carenagem pode ser construída com as seguintes etapas:
 2. Cortar os painéis do papelão Paraná.
 3. Montar a estrutura principal em formato retangular.
 4. Fazer os recortes frontais e laterais.
-5. Criar a tampa removível superior.
-6. Pintar a estrutura com as cores da Máquina Mistério.
-7. Adicionar detalhes decorativos, como flores e a escrita lateral.
-8. Fixar a carenagem ao chassi com fita dupla face, encaixes ou outro método leve.
+5. Pintar a estrutura com as cores da Máquina Mistério.
+6. Adicionar detalhes decorativos, como flores e a escrita lateral.
+7. Fixar a carenagem ao chassi com fita dupla face, encaixes ou outro método leve.
 
 ---
 
@@ -230,40 +219,4 @@ O projeto do carrinho controlado por celular permitiu integrar hardware, softwar
 
 Além da parte eletrônica e mecânica, a proposta da carenagem agregou valor visual ao projeto, tornando o protótipo mais completo e alinhado com a identidade temática escolhida pelo grupo.
 
-A documentação em Markdown facilita a publicação e entrega pelo GitHub, permitindo versionamento, visualização online e organização do projeto em repositório.
 
----
-
-## 11. Pendências para completar antes da entrega final
-
-Preencher, se necessário:
-
-- nome dos integrantes;
-- turma;
-- data;
-- aplicativo utilizado no celular;
-- material exato de pintura;
-- método final de fixação da carenagem;
-- medidas reais da carenagem depois da montagem.
-
----
-
-## 12. Estrutura sugerida para o repositório no GitHub
-
-```text
-/projeto-carrinho-makerlab
-│
-├── README.md
-│
-├── images/
-│   ├── chassi_isometrico.png
-│   ├── chassi_superior.png
-│   ├── chassi_posterior.png
-│   ├── posicao_componentes.png
-│   └── carenagem_mystery_machine.png
-│
-└── src/
-    └── carrinho.ino
-```
-
-Se quiser, o `README.md` pode ser o próprio arquivo principal da documentação.
