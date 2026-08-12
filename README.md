@@ -7,6 +7,7 @@
 **Integrantes:**
 - Geovanna Silva Cunha — RM97736
 - Victor Camargo Maciel — RM98384
+- Pedro Emerici Gava - RM551043
 
 **Turma:** 4ESPX
 
@@ -131,18 +132,6 @@ O chassi do carrinho foi **impresso em 3D** e serve como base para a montagem de
 </p>
 
 <p align="center"><em>Figura 1 — Vista isométrica do chassi impresso em 3D.</em></p>
-
-<p align="center">
-  <img src="./images/chassi_superior.png" width="700" alt="Vista superior do chassi">
-</p>
-
-<p align="center"><em>Figura 2 — Vista superior do chassi.</em></p>
-
-<p align="center">
-  <img src="./images/chassi_posterior.png" width="700" alt="Vista posterior do chassi">
-</p>
-
-<p align="center"><em>Figura 3 — Vista posterior do chassi.</em></p>
 
 ### 6.2 Motores e roda de apoio
 
