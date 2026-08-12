@@ -177,12 +177,12 @@ As medidas abaixo são estimadas com base no modelo 3D do projeto:
 
 ## 8. Carenagem / Cobertura
 
-A professora solicitou a inclusão da carenagem do projeto. Para isso, foi proposta uma cobertura simples, em formato retangular, feita em **papelão Paraná**, com pintura manual inspirada na **Máquina Mistério**.
+Para isso, foi proposta uma cobertura simples, em formato retangular, feita em **papelão Paraná**, com pintura manual inspirada na **Máquina Mistério**.
 
 ### 8.1 Características da carenagem
 
 - **Material:** papelão Paraná;
-- **Acabamento:** pintura manual;
+- **Acabamento:** pintura manual com tinta acrilica;
 - **Formato:** caixa/cobertura retangular simples;
 - **Referência visual:** Máquina Mistério do Scooby-Doo;
 
