@@ -5,9 +5,15 @@
 **Disciplina:** Project Maker Lab  
 **Projeto:** Carrinho controlado pelo celular com Bluetooth e Arduino Uno  
 **Integrantes:**
+<<<<<<< HEAD
 - Geovanna Silva Cunha — RM97736
 - Victor Camargo Maciel — RM98384
 
+=======
+- Geovanna Silva Cunha RM97736
+- Victor Camargo Maciel RM98384
+  
+>>>>>>> 8615718ca5eb899023b1a09cca73ccc7f875cbd3
 **Turma:** 4ESPX
 
 ---
@@ -203,7 +209,11 @@ As medidas abaixo são estimadas com base no modelo 3D do projeto:
 
 ## 8. Carenagem / Cobertura
 
+<<<<<<< HEAD
 Foi proposta uma cobertura simples, em formato retangular, feita em **papelão Paraná**, com pintura manual inspirada na **Máquina Mistério**, do Scooby-Doo.
+=======
+Para isso, foi proposta uma cobertura simples, em formato retangular, feita em **papelão Paraná**, com pintura manual inspirada na **Máquina Mistério**.
+>>>>>>> 8615718ca5eb899023b1a09cca73ccc7f875cbd3
 
 ### 8.1 Características da carenagem
 
