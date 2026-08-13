@@ -187,6 +187,17 @@ As medidas abaixo são estimadas com base no modelo 3D do projeto:
 | Largura do chassi | ≈ 130–138 mm |
 | Quantidade de motores | 2 |
 
+### 7.2 Medida dos componentes
+
+| Componente | Comprimento | Largura | Altura | Forma de fixação |
+|---|---|---|---|---|
+| Motor esquerdo | 64,25mm | 19,4mm | 22,6mm | Parafuso com estrutura impressa em 3D |
+| Motor direito | 64,25mm | 19,4mm | 22,6mm | Parafuso com estrutura impressa em 3D |
+| Arduino | 66,5mm | 54,1mm | 12,55mm | Amarração com cabo |
+| Ponte H | 44,2mm | 43,6mm | 11,2mm | Amarração com cabo |
+| Bateria | 70,5mm | 12,7mm | 11,3mm | Cola instantânea |
+| Sensor | 40,5mm | 20,4mm | 11,6mm | Cola instantânea |
+
 
 ---
 
