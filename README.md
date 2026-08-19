@@ -7,7 +7,7 @@
 **Integrantes:**
 - Geovanna Silva Cunha — RM97736
 - Victor Camargo Maciel — RM98384
-- Pedro Emerici Gava - RM551043
+- Pedro Emerici Gava — RM551043
 
 **Turma:** 4ESPX
 
