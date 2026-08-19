@@ -43,7 +43,7 @@ Desenvolver um carrinho robótico com controle remoto via smartphone, integrando
 | 1 | Placa compatível com Arduino Uno R3 (ATmega328 SMD) | Controlador principal |
 | 1 | Módulo Bluetooth HC-06 | Comunicação com o celular |
 | 1 | Ponte H dupla L298N | Controle dos motores |
-| 1 | Suporte para 4 pilhas AA com plug P4 | Alimentação do sistema |
+| 2 | Suporte para 4 pilhas AA com plug P4 | Alimentação do sistema |
 | 1 kit | Cabos jumper macho-macho / macho-fêmea | Interligações |
 | 2 | Motores DC com encoder | Movimentação lateral |
 | 1 | Roda boba | Apoio frontal |
