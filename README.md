@@ -49,6 +49,7 @@ Desenvolver um carrinho robótico com controle remoto via smartphone, integrando
 | 1 | Roda boba | Apoio frontal |
 | 1 | Chassi impresso em 3D | Estrutura principal |
 | 1 | Carenagem em papelão Paraná | Cobertura e decoração |
+| 1 | Sensor ultrassônico HC-SR04 | Detecção de obstáculos à frente do carrinho |
 
 > Os motores adquiridos possuem encoder, porém o código fornecido realiza apenas o acionamento dos motores pela ponte H; não há leitura dos encoders implementada.
 
@@ -63,11 +64,13 @@ O funcionamento do carrinho ocorre da seguinte forma:
 3. O **Arduino Uno R3** interpreta o caractere recebido pela comunicação serial.
 4. A **ponte H L298N** aciona os motores DC conforme o comando.
 5. O carrinho executa o movimento desejado.
+6. Se o caminho estiver livre, a ponte H L298N aciona os motores DC conforme o comando, com controle de velocidade via PWM (ENA/ENB).
+7.  O carrinho executa o movimento desejado.
 
 ### 4.1 Fluxo resumido
 
 ```text
-Celular → Bluetooth HC-06 → Arduino Uno → Ponte H L298N → Motores DC → Movimento do carrinho
+Celular → Bluetooth HC-06 → Arduino Uno → [verificação do sensor HC-SR04] → Ponte H L298N → Motores DC → Movimento do carrinho
 ```
 
 ### 4.2 Comandos utilizados
@@ -92,6 +95,12 @@ A comunicação serial é inicializada em **9600 bps**.
 | 4 | `IN2` | Controle do motor esquerdo |
 | 5 | `IN3` | Controle do motor direito |
 | 6 | `IN4` | Controle do motor direito |
+| 9 | `ENA (PWM)`|   Controle do motor direito |
+| 10 | `ENB (PWM)`|  Controle do motor direito |
+| 11 | `SENSOR_VCC`|  Controle do motor direito |
+| 12 | `TRIG`|  Controle do motor direito |
+| 13 | `ECHO`|  Controle do motor direito |
+| GND| `---`|  Controle do motor direito |
 
 ---
 
