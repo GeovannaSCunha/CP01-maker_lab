@@ -260,19 +260,36 @@ O código do Arduino está disponível em [`src/codigo.ino`](./src/codigo.ino).
 O programa lê um caractere recebido pela porta serial e executa a função de movimento correspondente.
 
 ```cpp
-#define IN1 3
-#define IN2 4
-#define IN3 5
-#define IN4 6
+// ===================== PINOS - MOTORES =====================
+#define IN1 3 // Roda esquerda 1
+#define IN2 4 // Roda esquerda 2
+#define IN3 5 // Roda direita 1
+#define IN4 6 // Roda direita 2
+#define ENA 9  // PWM - velocidade motor esquerdo
+#define ENB 10 // PWM - velocidade motor direito
 
+// ===================== PINOS - SENSOR ULTRASSÔNICO (HC-SR04) =====================
+// GND do sensor -> pino GND físico da placa
+// VCC do sensor -> pino digital 11, mantido sempre em HIGH (simula 5V)
+#define SENSOR_VCC 11
+#define TRIG 12
+#define ECHO 13
+
+// ===================== VARIÁVEIS =====================
 char comando;
+int velocidade = 200;       // valor padrão (0 a 255)
+long distancia;              // distância medida em cm
+const int DISTANCIA_MINIMA = 15; // cm - abaixo disso, para o carrinho
 
+// ===================== FUNÇÕES - MOTORES =====================
 void parar()
 {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
 }
 
 void andar_frente()
@@ -281,6 +298,8 @@ void andar_frente()
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH);
   digitalWrite(IN4, LOW);
+  analogWrite(ENA, velocidade);
+  analogWrite(ENB, velocidade);
 }
 
 void andar_tras()
@@ -289,6 +308,8 @@ void andar_tras()
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
+  analogWrite(ENA, velocidade);
+  analogWrite(ENB, velocidade);
 }
 
 void andar_direita()
@@ -297,6 +318,8 @@ void andar_direita()
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
+  analogWrite(ENA, velocidade);
+  analogWrite(ENB, velocidade);
 }
 
 void andar_esquerda()
@@ -305,7 +328,111 @@ void andar_esquerda()
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, HIGH);
   digitalWrite(IN4, LOW);
+  analogWrite(ENA, velocidade);
+  analogWrite(ENB, velocidade);
 }
+
+// ===================== FUNÇÃO - SENSOR ULTRASSÔNICO =====================
+long medir_distancia()
+{
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  long duracao = pulseIn(ECHO, HIGH, 30000); // timeout de 30ms evita travar se não houver eco
+  if (duracao == 0) return 999; // não detectou nada = "livre"
+
+  long dist = duracao * 0.034 / 2; // converte tempo em cm
+  return dist;
+}
+
+// ===================== SETUP =====================
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  pinMode(SENSOR_VCC, OUTPUT);
+  digitalWrite(SENSOR_VCC, HIGH); // alimenta o sensor via pino digital
+
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(11, OUTPUT);
+  digitalWrite(11, HIGH);
+
+  parar(); // garante que o carrinho começa parado
+}
+
+// ===================== LOOP =====================
+void loop()
+{
+  distancia = medir_distancia();
+
+  if (Serial.available() > 0)
+  {
+    String entrada = Serial.readStringUntil('\n');
+    entrada.trim();
+
+    if (entrada.length() == 0) return;
+
+    comando = entrada.charAt(0);
+
+    // Se vier um número junto (ex: "F150"), atualiza a velocidade
+    if (entrada.length() > 1)
+    {
+      int novaVelocidade = entrada.substring(1).toInt();
+      if (novaVelocidade >= 0 && novaVelocidade <= 255)
+      {
+        velocidade = novaVelocidade;
+      }
+    }
+
+    switch (comando)
+    {
+      case 'F': // frente
+        if (distancia > DISTANCIA_MINIMA)
+        {
+          andar_frente();
+        }
+        else
+        {
+          parar();
+          Serial.println("Obstáculo detectado! Frente bloqueada.");
+        }
+        break;
+      case 'B': // trás - não bloqueado pelo sensor (ele olha só para frente)
+        andar_tras();
+        break;
+      case 'R': // direita
+        andar_direita();
+        break;
+      case 'L': // esquerda
+        andar_esquerda();
+        break;
+      case 'S': // stop
+        parar();
+        break;
+      default:
+        parar();
+        break;
+    }
+  }
+
+  // Segurança extra: se estiver andando para frente e um obstáculo aparecer no meio do caminho, para
+  if (distancia <= DISTANCIA_MINIMA && comando == 'F')
+  {
+    parar();
+  }
+}
+
 ```
 
 ---
