@@ -450,17 +450,155 @@ Além da parte eletrônica e mecânica, a proposta da carenagem agrega valor vis
 ## 12. Estrutura do Repositório
 
 ```text
-carrinho-maker-lab/
+CP01-maker_lab/
 │
 ├── README.md
+├── Precificação.xlsx
+├── links.txt
 │
-├── images/
-│   ├── chassi_isometrico.png
-│   ├── chassi_superior.png
-│   ├── chassi_posterior.png
-│   ├── posicao_componentes.png
-│   └── carenagem_mystery_machine.png
+├── images/                          → fotos e desenhos do chassi e da carenagem
 │
-└── src/
-    └── carrinho_sensor_desvio.ino
+├── src/
+│   └── tinyml_inferencia.ino        → código final (sensor + modelo + motores + BLE)
+│
+├── model/
+│   └── model.h                      → modelo exportado do Edge Impulse
+│
+├── docs/
+│   └── dataset.csv                  → dataset usado no treinamento
+│
+└── tools/
+    ├── coleta_dataset/
+    │   └── coleta_dataset.ino       → sketch de coleta do dataset
+    └── salvar_dataset.py            → script que grava a coleta direto em CSV
 ```
+
+---
+
+## 13. Etapa 2 — TinyML no ESP32-S3
+
+### Sobre o projeto
+
+Evolução do carrinho controlado por celular da etapa anterior. O Arduino Uno foi substituído por um **ESP32-S3**, que roda um **modelo de Machine Learning embarcado (TinyML)** treinado no **Edge Impulse**.
+
+O sensor ultrassônico HC-SR04 mede a distância à frente do carrinho e o modelo classifica cada leitura em:
+
+| Classe | Significado |
+|---|---|
+| `0` | Caminho livre |
+| `1` | Obstáculo |
+
+Quando o carrinho está andando para frente e o modelo detecta um obstáculo (probabilidade acima de 60%), ele para, gira (alternando entre direita e esquerda) e volta a andar. O controle manual é feito pelo celular via **BLE**.
+
+---
+
+### Componentes
+
+- ESP32-S3-DevKitC-1
+- Sensor ultrassônico HC-SR04
+- Ponte H L298N
+- 2 motores DC com rodas
+- Resistores de 1 kΩ e 2 kΩ (divisor de tensão do ECHO)
+- Mini protoboard e jumpers
+- Suporte de pilhas AA
+- Chassi impresso em 3D
+
+---
+
+### Ligações
+
+| Componente | Pino | ESP32-S3 / destino |
+|---|---|---|
+| HC-SR04 | VCC | 5V da ponte H |
+| HC-SR04 | GND | GND comum |
+| HC-SR04 | TRIG | GPIO 12 |
+| HC-SR04 | ECHO | GPIO 13 (via divisor 1 kΩ / 2 kΩ) |
+| L298N | IN1 / IN2 | GPIO 4 / GPIO 5 |
+| L298N | IN3 / IN4 | GPIO 6 / GPIO 7 |
+| L298N | ENA / ENB | GPIO 15 / GPIO 16 (PWM) |
+| L298N | 12V / GND | Pilhas (+) / (−) |
+
+O ECHO do HC-SR04 sai em 5V e o ESP32-S3 trabalha com 3,3V, por isso o sinal passa por um divisor de tensão: `ECHO → 1 kΩ → GPIO 13 → 2 kΩ → GND`.
+
+Todos os GNDs (ESP32, ponte H, sensor e pilhas) são ligados em comum.
+
+---
+
+### Pipeline de TinyML
+
+#### 1. Coleta
+O `coleta_dataset.ino` mede a distância a cada 100 ms e envia pela serial no formato `valor,label`. O `salvar_dataset.py` recebe esses dados e grava o CSV. A classe é escolhida durante a coleta enviando `0` (livre) ou `1` (obstáculo).
+
+#### 2. Pré-processamento
+Aplicado igualmente na coleta e na inferência:
+1. Limite da distância entre 2 e 100 cm (sem eco = 100 cm)
+2. Média móvel das últimas 5 leituras
+3. Normalização para a faixa 0–1
+
+#### 3. Limpeza do dataset
+Foram removidas as amostras de transição gravadas enquanto o objeto mudava de posição:
+- Obstáculo: mantidas apenas leituras até **25 cm**
+- Livre: mantidas apenas leituras a partir de **30 cm**
+- A faixa de 25 a 30 cm ficou fora, como margem entre as classes
+
+Resultado: 1.128 → **856 amostras** (513 livre / 343 obstáculo).
+
+#### 4. Treinamento (Edge Impulse)
+- Entrada: 1 feature (`valor`)
+- Blocos: Raw Data + Classification
+- Rede: Dense (20) → Dense (10) → saída (2 classes)
+- 200 ciclos de treino, learning rate 0,005
+- Modelo quantizado em int8
+
+#### 5. Resultados
+| Conjunto | Acurácia |
+|---|---|
+| Validação | 100% (loss 0,00) |
+| Teste | _preencher com o resultado de Model testing_ |
+
+---
+
+### Como refazer a coleta de dados
+
+1. Grave `tools/coleta_dataset/coleta_dataset.ino` no ESP32-S3 e feche o Serial Monitor do Arduino IDE.
+2. Instale a dependência do script: `pip install pyserial`.
+3. Ajuste a porta na linha `PORTA = "COM9"` do `salvar_dataset.py` e rode `python salvar_dataset.py`.
+4. Digite `1` com um objeto a até 20 cm do sensor (obstáculo), `p` para pausar, `0` com o caminho livre ou objetos a mais de 30 cm (livre), e `sair` para salvar.
+5. O arquivo `dataset.csv` é gerado na mesma pasta do script, já sem as mensagens de controle.
+
+---
+
+### Como executar
+
+1. Instale a biblioteca do modelo no Arduino IDE: **Sketch → Include Library → Add .ZIP Library** (arquivo exportado em Deployment → Arduino library no Edge Impulse).
+2. Selecione a placa **ESP32S3 Dev Module**.
+3. Abra `src/tinyml_inferencia.ino` e faça o upload. Se aparecer "Sketch too big", use **Tools → Partition Scheme → Huge APP**.
+4. Ligue as pilhas na ponte H.
+
+---
+
+### Controle pelo celular (BLE)
+
+O carrinho aparece como **Carrinho-ESP32**. A conexão é feita pelo app (não pelas configurações de Bluetooth do celular).
+
+| Comando | Ação |
+|---|---|
+| `F` | Frente |
+| `B` | Ré |
+| `L` | Esquerda |
+| `R` | Direita |
+| `S` | Parar |
+| `F255` | Frente com velocidade definida (0–255) |
+
+Apps testados: **Serial Bluetooth Terminal** (Android, aba Bluetooth LE) e **Bluefruit Connect** (Controller → Control Pad). Se o celular desconectar, o carrinho para automaticamente.
+
+---
+
+### Aprendizados
+
+- O ESP32-S3 não tem Bluetooth clássico, então a comunicação foi migrada para BLE (Nordic UART Service).
+- O pino de ECHO precisa de divisor de tensão para não danificar o ESP32.
+- Pela porta USB, o 5V do ESP32 não foi suficiente para o HC-SR04; o sensor passou a ser alimentado pelo regulador de 5V da ponte H.
+- Os motores precisam de alimentação própria (pilhas); a energia do USB não é suficiente para girá-los.
+- Sem jumper ou sinal em ENA/ENB, a ponte H mantém os motores desligados.
+- Dados mal rotulados derrubam o modelo: a limpeza do dataset foi essencial para separar bem as classes.
