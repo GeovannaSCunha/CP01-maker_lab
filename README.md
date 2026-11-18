@@ -4,10 +4,13 @@
 
 **Disciplina:** Project Maker Lab  
 **CP01:** Carrinho controlado pelo celular com Bluetooth e Arduino Uno  
+**GS:** Carrinho com TinyML para monitoramento de microclima de horta comunitária (tema CitizenTech) — ver seção 14  
+**Vídeo da GS:** [VIDEO DO YOUTUBE](https://youtu.be/oJFVsnZvias)  
 **Integrantes:**
 - Geovanna Silva Cunha — RM97736
 - Victor Camargo Maciel — RM98384
 - Pedro Emerici Gava — RM551043
+- Bianca Carvalho Dancs — RM 551645
 
 **Turma:** 4ESPX
 
@@ -602,3 +605,204 @@ Apps testados: **Serial Bluetooth Terminal** (Android, aba Bluetooth LE) e **Blu
 - Os motores precisam de alimentação própria (pilhas); a energia do USB não é suficiente para girá-los.
 - Sem jumper ou sinal em ENA/ENB, a ponte H mantém os motores desligados.
 - Dados mal rotulados derrubam o modelo: a limpeza do dataset foi essencial para separar bem as classes.
+
+---
+
+## 14. GS — CitizenTech: Monitoramento de Microclima da Horta
+
+### 14.1 Visão geral
+
+Evolução do carrinho para a GS de Project-based Maker Lab, no tema **CitizenTech** (horta comunitária). O carrinho percorre a horta, para junto de cada canteiro, mede a temperatura e a umidade do ar na altura das plantas e usa um modelo **TinyML** para classificar o risco de estresse térmico e hídrico, enviando o relatório ao celular por BLE.
+
+A GS pedia pelo menos um sensor adicional e uma integração melhor com IA. Ambos foram atendidos:
+
+- **Sensor adicional:** DHT11 (temperatura e umidade do ar);
+- **IA:** modelo TinyML treinado no Edge Impulse, rodando no ESP32-S3.
+
+**Vídeo de demonstração (YouTube):** [COLE AQUI O LINK DO VÍDEO NO YOUTUBE]
+
+### 14.2 Problema e proposta
+
+Em hortas comunitárias, nem sempre há equipamento para saber se o ar está seco, quente ou úmido demais, o que causa estresse nas plantas e doenças por fungos. A proposta é um carrinho que faz essa leitura junto de cada canteiro e traduz os números em uma classificação de risco com uma sugestão de ação.
+
+O sensor DHT11 fica na parte de baixo do carrinho, o mais perto possível do solo. O sistema mede apenas o ar e **indica risco**; ele não faz irrigação automática nem substitui um sensor de umidade do solo.
+
+### 14.3 Ferramentas e componentes acrescentados
+
+**Hardware**
+
+- Sensor DHT11, módulo de 3 pinos (temperatura e umidade do ar)
+
+**Software e plataformas**
+
+- Edge Impulse Studio (treinamento, teste e exportação do modelo)
+- Arduino IDE, com a biblioteca do modelo exportada do Edge Impulse (`ei-microclima-arduino-1.0.1-impulse-#1`)
+- Bibliotecas Arduino: **DHT sensor library** e **Adafruit Unified Sensor** (Adafruit)
+- Python, com `pyserial`, `pandas` e `numpy`, para os scripts de coleta e de preparação do dataset
+- Apps BLE: Serial Bluetooth Terminal e Bluefruit Connect
+
+### 14.4 Ligação do DHT11
+
+- **VCC:** 3V3 do ESP32-S3 (não usar 5V, pois o pino de dados sairia em 5V)
+- **GND:** GND comum
+- **DATA (S):** GPIO 8
+
+As demais ligações continuam as da seção 13. Se for usado um DHT11 de 4 pinos (sem placa), é necessário um resistor de 10 kΩ entre DATA e 3V3.
+
+### 14.5 VPD e classes de risco
+
+Temperatura e umidade relativa isoladas dizem pouco: 30 °C com 80% de umidade é bem diferente de 30 °C com 30%. Por isso usamos o **VPD (déficit de pressão de vapor)**, que combina as duas leituras em um único valor e representa o quanto o ar "puxa" água das plantas:
+
+```text
+es  = 0,6108 × exp(17,27 × T / (T + 237,3))     (kPa, T em °C)
+VPD = es × (1 − UR / 100)                        (kPa)
+```
+
+Classes de saída:
+
+- **ideal:** VPD de 0,4 a 1,2 kPa
+- **umido:** VPD abaixo de 0,4 kPa (ar quase saturado, risco de fungos e doenças foliares)
+- **atencao:** VPD de 1,2 a 2,0 kPa (ar seco ou quente; irrigação preventiva ou sombreamento)
+- **critico:** VPD a partir de 2,0 kPa, ou temperatura a partir de 35 °C, independente do VPD
+
+As faixas seguem a literatura de cultivo protegido, que costuma apontar de 0,4 a 1,2 kPa como faixa ideal para hortaliças. Os limiares são parâmetros no código e devem ser ajustados por cultura.
+
+Fonte das faixas: _[inserir a referência bibliográfica escolhida]_
+
+### 14.6 Pipeline de TinyML do microclima
+
+#### 1. Pré-processamento
+Aplicado igualmente na coleta e na inferência:
+1. Mediana móvel das últimas 5 leituras do DHT11 (uma leitura a cada 2 s)
+2. Normalização: temperatura ÷ 50 e umidade ÷ 100, ambas na faixa 0–1
+
+O modelo recebe apenas `temp_n` e `ur_n`, sem o VPD pronto, e precisa aprender a relação não linear entre as duas variáveis.
+
+#### 2. Divisão treino e teste
+A divisão foi feita **por sessão**, e não por linhas sorteadas, porque leituras vizinhas são quase idênticas e um sorteio linha a linha inflaria a acurácia.
+
+- Treino: 14 sessões, 1.174 amostras (ideal 395, crítico 277, atenção 258, úmido 244)
+- Teste: 6 sessões, 475 amostras (ideal 106, úmido 112, crítico 190, atenção 67)
+
+#### 3. Treinamento (Edge Impulse)
+- Entrada: 2 eixos (`temp_n` e `ur_n`), com janela de 2000 ms (1 leitura por janela)
+- Blocos: Flatten + Classification
+- Rede: Dense (16) → Dense (16) → saída (4 classes)
+- Modelo quantizado em int8, compilado com o EON Compiler
+
+#### 4. Resultados
+
+- **Validação (int8):** acurácia de 97,9% e loss de 0,05
+- **Teste (float32, sessões nunca vistas):** acurácia de 95,58%
+- **Teste (int8):** _preencher com o resultado de Model testing na versão Quantized (int8)_
+
+Desempenho por classe no conjunto de teste:
+
+- **umido:** 100% de acerto
+- **atencao:** 98,5% de acerto (1,5% classificado como incerto)
+- **critico:** 94,7% de acerto (5,3% classificado como atenção)
+- **ideal:** 90,6% de acerto (9,4% classificado como incerto)
+
+Os erros se concentram nas fronteiras entre classes vizinhas, que correspondem aos limiares de VPD (1,2 e 2,0 kPa) e de 35 °C. Nenhuma amostra crítica foi classificada como ideal ou úmida.
+
+Desempenho no ESP32-S3: **1 ms** de inferência, **1,4 KB** de RAM de pico e **14,6 KB** de flash.
+
+#### 5. Comparação com a regra do VPD
+Como o rótulo vem da própria regra, a regra tem 100% de acerto por definição e serve de referência. O modelo chegou a 95,58% no teste. A vantagem do TinyML é executar a classificação no ESP32 sem depender da fórmula nem de rede, com um modelo de poucos kilobytes.
+
+#### 6. Modo degradado
+Se o modelo falhar ou a confiança ficar abaixo de 0,6, o carrinho usa a regra do VPD (`classificarRegra`) como reserva e registra isso no log. O relatório informa se quem decidiu foi o TinyML ou a regra.
+
+### 14.7 Funcionamento no carrinho
+
+- **Modo patrulha (`P`):** o carrinho anda e, ao encontrar um obstáculo (um canteiro ou vaso), para, mede o microclima, envia o relatório ao celular e depois desvia normalmente, seguindo para o próximo. Cada medição espera 5 leituras novas do DHT11 e há um intervalo mínimo de 15 s entre medições.
+- **Medição imediata (`M`):** mede o microclima na hora, com o carrinho parado.
+- **Relatório BLE:** o celular recebe o canteiro, a temperatura, a umidade, o VPD, a classe e uma sugestão de ação (por exemplo, "Ar seco/quente: irrigar ou sombrear").
+- **Desvio de obstáculo:** o HC-SR04 passou a usar um **limiar fixo** (média móvel das últimas 5 leituras abaixo de 27 cm), em vez do modelo da etapa 2.
+
+O Edge Impulse não permite duas bibliotecas de modelo no mesmo sketch (as duas trazem cópias do SDK com as mesmas funções e macros). Por isso, na versão da GS a IA ficou concentrada no microclima. O sketch da etapa 2, com o modelo do ultrassônico, permanece no histórico do repositório.
+
+Comandos adicionais (os da seção 13 continuam valendo):
+
+- `P`: liga ou desliga a patrulha
+- `M`: mede o microclima agora
+
+Qualquer comando manual (`F`, `B`, `L`, `R`, `S` ou o Control Pad) desliga a patrulha.
+
+### 14.8 Comportamento em falhas
+
+- **DHT11 sem resposta:** após 5 falhas seguidas o carrinho avisa no Serial e no celular; ao medir, informa "sem leitura" e não classifica com dado inválido. A patrulha continua.
+- **Leitura isolada inválida (`NaN`):** é ignorada.
+- **Celular desconectado:** o carrinho para e a patrulha é desligada.
+- **Modelo incerto ou com falha:** a regra do VPD assume a classificação.
+
+### 14.9 Como executar a versão da GS
+
+1. Instale **DHT sensor library** e **Adafruit Unified Sensor** pelo Gerenciador de Bibliotecas.
+2. Instale a biblioteca do modelo: **Sketch → Include Library → Add .ZIP Library** (arquivo `ei-microclima-arduino-1.0.1-impulse-#1`). Confira em `Documentos/Arduino/libraries/<pasta>/src/` o nome do arquivo `*_inferencing.h` e ajuste o `#include` da primeira linha do sketch, se necessário. Mantenha **apenas uma** biblioteca do Edge Impulse instalada para este sketch.
+3. Selecione a placa **ESP32S3 Dev Module**, abra `src/tinyml_inferencia.ino` e faça o upload.
+4. Abra o Serial Monitor em 115200. Ao iniciar, deve aparecer `Modelo de microclima: 2 entradas, 4 classes`.
+5. Conecte ao BLE `Carrinho-ESP32` e envie `M` para medir ou `P` para iniciar a patrulha.
+
+**Ajuste de polaridade dos motores:** as constantes `INVERTER_MOTOR_A` e `INVERTER_MOTOR_B`, no topo do sketch, invertem o sentido de cada motor por código. Com os motores ligados como no nosso carrinho, ambas ficam em `true`. Se algum motor girar ao contrário, troque a constante correspondente.
+
+### 14.10 Como fazer o dataset
+
+**Dataset sintético (usar no treinamento)**
+
+1. Rode `python gerar_dataset_sintetico.py`, que gera `dataset_microclima.csv` no mesmo formato da coleta real.
+2. Rode `python preparar_edge_impulse.py`, que separa as sessões em treino e teste e gera as pastas `ei_treino/` e `ei_teste/` com um CSV por trecho (`<classe>.s<sessão>_<trecho>.csv`, com colunas `timestamp`, `temp_n` e `ur_n`).
+3. No Edge Impulse Studio, em **Data acquisition → Upload data**, envie `ei_treino/` como *Training* e `ei_teste/` como *Testing*, inferindo o rótulo pelo nome do arquivo.
+4. Crie o impulse (janela de 2000 ms, Flatten, Classification), treine, rode **Model testing → Classify all** e exporte em **Deployment → Arduino library** (Quantized int8).
+
+**Coleta real (opcional)**
+
+1. Grave `tools/coleta_microclima/coleta_microclima.ino` no ESP32-S3 e feche o Serial Monitor.
+2. Ajuste a porta na linha `PORTA = "COM9"` do `salvar_dataset_microclima.py` e rode o script.
+3. Monte cada zona, espere de 60 a 90 s para o DHT11 estabilizar e envie `0`, `1`, `2` ou `3` (zona), `p` (pausa) ou `sair` (salvar). O rótulo é calculado pela regra do VPD, e a zona serve para rastrear a montagem e dividir treino e teste por sessão.
+
+### 14.11 Limitações
+
+- **Dataset sintético:** a acurácia mostra que o modelo aprendeu a regra do VPD, e não que ele foi validado em campo. O próximo passo é coletar leituras reais em uma horta e revalidar o modelo.
+- **DHT11:** resolução inteira, erro de cerca de ±2 °C e ±5% de umidade, e resposta lenta (leitura no mínimo a cada 1 s). O VPD amplifica o erro de umidade quando o ar está seco. Mitigações no código: mediana móvel, descarte de `NaN` e aviso após falhas seguidas.
+- **Só mede o ar:** o sensor não substitui um sensor de umidade do solo, e as saídas são recomendações de risco, não irrigação automática.
+- **Um modelo por sketch:** o desvio de obstáculo da versão da GS usa limiar fixo, como explicado na seção 14.7.
+
+### 14.12 Estrutura do repositório (GS)
+
+Arquivos acrescentados nesta etapa:
+
+```text
+CP01-maker_lab/
+│
+├── src/
+│   └── tinyml_inferencia.ino          → versão da GS (microclima + BLE + patrulha)
+│
+├── model/
+│   └── ei-microclima-arduino-1.0.1-impulse-#1.zip   → biblioteca exportada do Edge Impulse
+│
+├── docs/
+│   ├── dataset_microclima.csv         → dataset sintético de microclima
+│   └── classificacao_microclima.md    → documento de apoio (VPD, classes, plano de coleta)
+│
+└── tools/
+    ├── coleta_microclima/
+    │   └── coleta_microclima.ino      → sketch de coleta do dataset de microclima
+    ├── salvar_dataset_microclima.py   → grava a coleta direto em CSV
+    ├── gerar_dataset_sintetico.py     → gera o dataset sintético
+    └── preparar_edge_impulse.py       → separa treino e teste e gera os CSVs para o Edge Impulse
+```
+
+### 14.13 Aprendizados
+
+- O VPD é uma variável mais informativa para o estresse das plantas do que temperatura e umidade isoladas, e permite definir classes de risco com limiares claros.
+- A divisão de treino e teste deve ser feita por sessão; a divisão aleatória por linha deixaria o teste contaminado por leituras quase idênticas.
+- A acurácia de validação (97,9%) foi maior que a de teste (95,58%), o que reforça a importância de avaliar o modelo em sessões nunca vistas.
+- Quando a confiança do modelo é baixa, vale ter uma regra de reserva e registrar qual dos dois decidiu.
+- O Edge Impulse gera uma biblioteca com o SDK embutido, e duas delas no mesmo sketch entram em conflito (podendo compilar e rodar o modelo errado sem aviso).
+- O Edge Impulse ordena os rótulos em ordem alfabética, então o código deve localizar a classe pelo nome e não pela posição.
+- A polaridade dos motores pode ser corrigida por código, sem alterar a fiação.
+
+### 14.14 Considerações finais da GS
+
+A GS transformou o carrinho em uma plataforma de monitoramento de microclima para hortas comunitárias, combinando navegação, sensoriamento ambiental e um modelo TinyML que roda inteiramente no ESP32-S3, em cerca de 1 ms e com poucos kilobytes de memória. A principal evolução futura é a validação com leituras reais de campo e a integração de um sensor de umidade do solo para apoiar decisões de irrigação.
